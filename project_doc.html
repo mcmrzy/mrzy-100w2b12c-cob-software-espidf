@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COB-LED Controller - 项目技术文档</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --card: #1a1d28;
+            --border: #2a2d3a;
+            --text: #e0e0e0;
+            --text-dim: #888;
+            --accent: #00d4aa;
+            --warm: #ff9f43;
+            --cold: #74b9ff;
+            --danger: #ff6b6b;
+            --code-bg: #12141c;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            padding: 20px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 50px 20px 40px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-size: 2.4em;
+            background: linear-gradient(135deg, var(--warm), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .header .subtitle { color: var(--text-dim); font-size: 1.1em; }
+        .header .chips { margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .chip {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            border: 1px solid var(--border);
+            color: var(--accent);
+            background: rgba(0,212,170,0.05);
+        }
+
+        /* Sections */
+        .section { margin-bottom: 40px; }
+        .section h2 {
+            font-size: 1.5em;
+            color: var(--accent);
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .section h3 {
+            font-size: 1.15em;
+            color: var(--warm);
+            margin: 20px 0 10px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 700px) { .card-grid { grid-template-columns: 1fr; } }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.92em;
+        }
+        th { color: var(--accent); font-weight: 600; }
+        td { color: var(--text); }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        /* Code */
+        code {
+            background: var(--code-bg);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.88em;
+            color: var(--accent);
+        }
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+        pre code { background: none; padding: 0; color: var(--text); }
+
+        /* Tree */
+        .tree { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.9em; line-height: 1.8; color: var(--text-dim); }
+        .tree .dir { color: var(--accent); }
+        .tree .file { color: var(--text); }
+        .tree .desc { color: var(--text-dim); font-style: italic; }
+
+        /* Flow */
+        .flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            padding: 16px 0;
+        }
+        .flow-step {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            text-align: center;
+            min-width: 100px;
+        }
+        .flow-step .num {
+            display: block;
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        .flow-step .label { font-size: 0.8em; color: var(--text-dim); }
+        .flow-arrow { color: var(--text-dim); font-size: 1.2em; }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.78em;
+            font-weight: 600;
+        }
+        .badge-green { background: rgba(0,212,170,0.15); color: var(--accent); }
+        .badge-orange { background: rgba(255,159,67,0.15); color: var(--warm); }
+        .badge-red { background: rgba(255,107,107,0.15); color: var(--danger); }
+        .badge-blue { background: rgba(116,185,255,0.15); color: var(--cold); }
+
+        /* Memory bar */
+        .mem-bar { height: 18px; border-radius: 9px; background: var(--border); overflow: hidden; margin-top: 4px; }
+        .mem-fill { height: 100%; border-radius: 9px; transition: width 0.3s; }
+        .mem-label { display: flex; justify-content: space-between; font-size: 0.85em; margin-top: 2px; }
+
+        /* Pin map */
+        .pin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+        .pin-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--code-bg);
+            border-radius: 6px;
+            font-size: 0.88em;
+        }
+        .pin-num {
+            background: var(--accent);
+            color: var(--bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+            min-width: 36px;
+            text-align: center;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-dim);
+            font-size: 0.85em;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<!-- ==================== HEADER ==================== -->
+<div class="header">
+    <h1>COB-LED Controller</h1>
+    <div class="subtitle">100W 双色温 COB LED 智能控制器固件技术文档</div>
+    <div class="chips">
+        <span class="chip">ESP32-S3</span>
+        <span class="chip">ESP-IDF v5.4</span>
+        <span class="chip">LVGL v8.4</span>
+        <span class="chip">FreeRTOS</span>
+        <span class="chip">NimBLE</span>
+        <span class="chip">MCPWM</span>
+        <span class="chip">ST7789V</span>
+        <span class="chip">BMP280</span>
+        <span class="chip">TP181A1</span>
+    </div>
+</div>
+
+<!-- ==================== OVERVIEW ==================== -->
+<div class="section">
+    <h2>项目概述</h2>
+    <div class="card">
+        <p>本项目是基于 <code>ESP32-S3</code> 的 100W 双色温 COB LED 智能控制器固件，采用纯 <code>ESP-IDF v5.4</code> 框架开发（无 Arduino 依赖）。</p>
+        <br>
+        <p>核心功能包括：2700K~6500K 双色温无级调节、0~100% 亮度控制、ST7789V LCD 显示屏交互界面、双旋转编码器输入、WiFi AP+STA 网络控制、BLE 蓝牙控制、MQTT 远程控制、NTC 温度监控与过温保护、BMP280 环境监测（温度+气压）、TP181A1 电流检测、自动亮度调节、风扇智能温控等。</p>
+    </div>
+</div>
+
+<!-- ==================== ARCHITECTURE ==================== -->
+<div class="section">
+    <h2>系统架构</h2>
+
+    <h3>FreeRTOS 多任务架构</h3>
+    <div class="card">
+        <div class="flow">
+            <div class="flow-step"><span class="num">app_main</span><span class="label">主入口<br>Core 0</span></div>
+            <span class="flow-arrow">&#10132;</span>
+            <div class="flow-step"><span class="num">lvgl_task</span><span class="label">UI 刷新<br>Core 1 · 优先级 10<br>栈 8KB</span></div>
+            <span class="flow-arrow">&#10132;</span>
+            <div class="flow-step"><span class="num">control_task</span><span class="label">传感器+保护<br>Core 0 · 优先级 5<br>栈 4KB</span></div>
+            <span class="flow-arrow">&#10132;</span>
+            <div class="flow-step"><span class="num">wifi_task</span><span class="label">网络初始化<br>Core 0 · 优先级 4<br>栈 8KB · 一次性</span></div>
+        </div>
+    </div>
+
+    <h3>启动流程</h3>
+    <div class="card">
+        <table>
+            <tr><th>步骤</th><th>操作</th><th>说明</th></tr>
+            <tr><td>1</td><td><code>storage_init()</code></td><td>初始化 NVS Flash，加载用户设置</td></tr>
+            <tr><td>2</td><td>应用设置到全局变量</td><td>g_colorTemp / g_brightness / g_auto_brightness</td></tr>
+            <tr><td>3</td><td><code>gpio_init()</code></td><td>配置编码器引脚（输入+上拉）、蜂鸣器引脚（输出）</td></tr>
+            <tr><td>4</td><td><code>led_init()</code></td><td>初始化 LEDC (EN) + MCPWM (W/Y) PWM 驱动</td></tr>
+            <tr><td>5</td><td><code>fan_init()</code></td><td>初始化风扇 LEDC PWM + 使能 GPIO</td></tr>
+            <tr><td>6</td><td><code>sensors_init()</code></td><td>初始化 ADC oneshot 6通道 + 校准</td></tr>
+            <tr><td>7</td><td><code>buzzer_beep()</code></td><td>开机蜂鸣提示</td></tr>
+            <tr><td>8</td><td>创建 <code>lvgl_task</code></td><td>Core 1：LVGL UI + 编码器读取</td></tr>
+            <tr><td>9</td><td>创建 <code>control_task</code></td><td>Core 0：传感器 + 温度保护 + 自动亮度</td></tr>
+            <tr><td>10</td><td>创建 <code>wifi_task</code></td><td>Core 0：WiFi + Web + BLE + MQTT 初始化</td></tr>
+        </table>
+    </div>
+</div>
+
+<!-- ==================== FILE STRUCTURE ==================== -->
+<div class="section">
+    <h2>目录结构</h2>
+    <div class="card">
+        <div class="tree">
+<span class="dir">main/</span>
+├── <span class="file">main.cpp</span>              <span class="desc">— 程序入口 (app_main + 3个FreeRTOS任务)</span>
+├── <span class="file">CMakeLists.txt</span>        <span class="desc">— 组件构建配置</span>
+├── <span class="file">idf_component.yml</span>     <span class="desc">— 外部依赖 (LVGL v8.x, mDNS)</span>
+├── <span class="dir">hal/</span>
+│   ├── <span class="file">config.h</span>          <span class="desc">— 全局硬件配置、引脚定义、参数常量</span>
+│   └── <span class="file">cct_table.h</span>       <span class="desc">— 38步 CCT 色温 PWM 查找表 (header-only)</span>
+├── <span class="dir">storage/</span>
+│   ├── <span class="file">storage.h</span>         <span class="desc">— NVS 存储接口 + Settings 结构体</span>
+│   └── <span class="file">storage.cpp</span>       <span class="desc">— NVS 读写实现 (10个键值对)</span>
+├── <span class="dir">led/</span>
+│   ├── <span class="file">led_control.h</span>     <span class="desc">— LED + 风扇控制接口</span>
+│   └── <span class="file">led_control.cpp</span>   <span class="desc">— LEDC (EN/Fan) + MCPWM 新API (W/Y互补+死区)</span>
+├── <span class="dir">sensor/</span>
+│   ├── <span class="file">sensors.h</span>         <span class="desc">— 传感器数据结构 + 接口</span>
+│   ├── <span class="file">sensors.cpp</span>       <span class="desc">— ADC1 6通道 + NTC Steinhart + 电流采样</span>
+│   ├── <span class="file">bmp280.h</span>         <span class="desc">— BMP280 气压温度传感器接口</span>
+│   └── <span class="file">bmp280.cpp</span>       <span class="desc">— BMP280 I2C 驱动实现</span>
+├── <span class="dir">display/</span>
+│   ├── <span class="file">st7789v.h/cpp</span>     <span class="desc">— ST7789V SPI 显示驱动 (240x320, 横屏)</span>
+│   ├── <span class="file">lvgl_disp.h/cpp</span>   <span class="desc">— LVGL v8.4 显示驱动适配</span>
+│   ├── <span class="file">lvgl_indev.h/cpp</span>  <span class="desc">— LVGL 编码器输入设备驱动</span>
+│   └── <span class="file">lvgl_ui.h/cpp</span>     <span class="desc">— 暗色主题 UI (CCT弧/亮度弧/温度条)</span>
+└── <span class="dir">network/</span>
+    ├── <span class="file">web_ui.h/cpp</span>      <span class="desc">— WiFi AP+STA + HTTP REST API</span>
+    ├── <span class="file">ble_ui.h/cpp</span>      <span class="desc">— NimBLE BLE GATT 服务 (6个特征)</span>
+    ├── <span class="file">app_mqtt.h</span>        <span class="desc">— MQTT 客户端接口</span>
+    └── <span class="file">mqtt_client.cpp</span>   <span class="desc">— ESP-MQTT 客户端实现</span>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== PIN MAP ==================== -->
+<div class="section">
+    <h2>引脚分配</h2>
+    <div class="card-grid">
+        <div class="card">
+            <h3>LED 驱动</h3>
+            <div class="pin-grid">
+                <div class="pin-item"><span class="pin-num">12</span> EN PWM (总亮度)</div>
+                <div class="pin-item"><span class="pin-num">10</span> W PWM (暖白)</div>
+                <div class="pin-item"><span class="pin-num">11</span> Y PWM (冷白)</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>风扇</h3>
+            <div class="pin-grid">
+                <div class="pin-item"><span class="pin-num">9</span> FAN PWM</div>
+                <div class="pin-item"><span class="pin-num">46</span> FAN EN</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>编码器 1 (主)</h3>
+            <div class="pin-grid">
+                <div class="pin-item"><span class="pin-num">39</span> EC1 A相</div>
+                <div class="pin-item"><span class="pin-num">38</span> EC1 B相</div>
+                <div class="pin-item"><span class="pin-num">0</span> EC1 按键</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>编码器 2 (副)</h3>
+            <div class="pin-grid">
+                <div class="pin-item"><span class="pin-num">37</span> EC2 A相</div>
+                <div class="pin-item"><span class="pin-num">36</span> EC2 B相</div>
+                <div class="pin-item"><span class="pin-num">35</span> EC2 按键</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>ADC 传感器</h3>
+            <div class="pin-grid">
+                <div class="pin-item"><span class="pin-num">6</span> 总线电压</div>
+                <div class="pin-item"><span class="pin-num">7</span> 电池电压</div>
+                <div class="pin-item"><span class="pin-num">5</span> 光敏电阻</div>
+                <div class="pin-item"><span class="pin-num">4</span> NTC 温度</div>
+                <div class="pin-item"><span class="pin-num">1</span> 电池电流</div>
+                <div class="pin-item"><span class="pin-num">2</span> 输入电流</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>其他</h3>
+            <div class="pin-grid">
+                <div class="pin-item"><span class="pin-num">13</span> 蜂鸣器</div>
+                <div class="pin-item"><span class="pin-num">3</span> 使能按键</div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>BMP280 I2C</h3>
+            <div class="pin-grid">
+                <div class="pin-item"><span class="pin-num">8</span> I2C SCL</div>
+                <div class="pin-item"><span class="pin-num">18</span> I2C SDA</div>
+                <div class="pin-item"><span class="pin-num">0x76</span> I2C 地址</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODULE DETAILS ==================== -->
+<div class="section">
+    <h2>模块详解</h2>
+
+    <!-- LED -->
+    <div class="card">
+        <h3>LED 驱动模块 <span class="badge badge-green">led_control</span></h3>
+        <table>
+            <tr><th>通道</th><th>外设</th><th>GPIO</th><th>频率</th><th>周期寄存器</th><th>实际分辨率</th><th>说明</th></tr>
+            <tr><td>EN (总亮度)</td><td>LEDC Timer0/Ch0</td><td>12</td><td>20 kHz</td><td>—</td><td>10-bit (1024级)</td><td>控制 LED 总输出功率</td></tr>
+            <tr><td>W (暖白)</td><td>MCPWM Gen0</td><td>10</td><td>20 kHz</td><td>1024</td><td>10-bit (1024级)</td><td>暖白通道，与Y互补</td></tr>
+            <tr><td>Y (冷白)</td><td>MCPWM Gen1</td><td>11</td><td>20 kHz</td><td>1024</td><td>10-bit (1024级)</td><td>冷白通道，与W互补</td></tr>
+            <tr><td>FAN</td><td>LEDC Timer3/Ch2</td><td>9</td><td>25 kHz</td><td>—</td><td>8-bit (256级)</td><td>风扇调速</td></tr>
+        </table>
+        <br>
+        <p><strong>分辨率与频率的关系：</strong>MCPWM 定时器时钟固定为 APB 总线频率（80MHz）。实际分辨率由 <code>period_ticks</code> 决定，计算公式为 <code>分辨率(bit) = log₂(period_ticks)</code>。频率与分辨率呈此消彼长关系 — 提高频率需降低周期寄存器值，从而降低分辨率。</p>
+        <br>
+        <table>
+            <tr><th>目标频率</th><th>最大周期寄存器</th><th>最高分辨率</th></tr>
+            <tr><td>312.5 Hz</td><td>65536</td><td>16-bit</td></tr>
+            <tr><td>1.22 kHz</td><td>16384</td><td>14-bit</td></tr>
+            <tr><td>4.88 kHz</td><td>4096</td><td>12-bit</td></tr>
+            <tr><td><strong>20 kHz</strong></td><td><strong>1024</strong></td><td><strong>10-bit</strong></td></tr>
+            <tr><td>78 kHz</td><td>256</td><td>8-bit</td></tr>
+        </table>
+        <br>
+        <p><strong>双色温控制原理：</strong>通过 38 步 CCT 查找表（<code>cct_table.h</code>），将 2700K~6500K 色温映射为 W/Y 两个通道的互补 PWM 占空比。暖色温时 W 占空比高、Y 低；冷色温时反过来。MCPWM 硬件生成互补 PWM 并自动插入 ~3us 死区时间防止桥臂直通。</p>
+    </div>
+
+    <!-- Sensor -->
+    <div class="card">
+        <h3>传感器模块 <span class="badge badge-blue">sensors</span></h3>
+        <h3>NTC 测温 + ADC 采样</h3>
+        <table>
+            <tr><th>通道</th><th>GPIO</th><th>功能</th><th>算法</th></tr>
+            <tr><td>ADC1_CH</td><td>6</td><td>总线电压</td><td>原始值 &times; 6.1 分压比</td></tr>
+            <tr><td>ADC1_CH</td><td>7</td><td>电池电压</td><td>原始值 &times; 5.1 分压比</td></tr>
+            <tr><td>ADC1_CH</td><td>5</td><td>光敏电阻</td><td>10次采样取平均</td></tr>
+            <tr><td>ADC1_CH</td><td>4</td><td>NTC 灯珠温度</td><td>Steinhart 方程 (B=3435, R0=10K&Omega;)</td></tr>
+            <tr><td>ADC1_CH</td><td>1</td><td>电池电流</td><td>TP181A1 + 10m&Omega; 分流电阻</td></tr>
+            <tr><td>ADC1_CH</td><td>2</td><td>输入电流</td><td>TP181A1 + 10m&Omega; 分流电阻</td></tr>
+        </table>
+        <br>
+        <h3>TP181A1 电流计算</h3>
+        <p>TP181A1 为 3PEAK 零漂移双向电流检测放大器，增益 = 50 V/V，配合 10m&Omega; 检流电阻：</p>
+        <pre><code>灵敏度 = 增益 × Rshunt = 50 × 0.01 = 0.5 V/A
+
+电流 = (Vout - 1.65V) / 0.5
+     = (Vout - 1.65V) × 2
+
+其中 1.65V = 3.3V/2，为 TP181A1 双向输出的零点电压
+每 LSB ≈ 1.6mA (ADC 12-bit)</code></pre>
+        <br>
+        <h3>BMP280 环境监测 <span class="badge badge-green">I2C</span></h3>
+        <table>
+            <tr><th>参数</th><th>值</th></tr>
+            <tr><td>芯片</td><td>BMP280 (博世)</td></tr>
+            <tr><td>I2C 地址</td><td>0x76</td></tr>
+            <tr><td>I2C 引脚</td><td>SCL=GPIO8, SDA=GPIO18</td></tr>
+            <tr><td>环境温度</td><td>0.01°C 分辨率</td></tr>
+            <tr><td>气压范围</td><td>300~1100 hPa</td></tr>
+            <tr><td>海拔估算</td><td>基于海平面气压 (1013.25 hPa)</td></tr>
+            <tr><td>LCD 显示</td><td>Env: XX.X°C  XXXX hPa</td></tr>
+        </table>
+        <br>
+        <p>使用 ADC oneshot API + 曲线拟合校准（<code>adc_cali_curve_fitting</code>），每次读取 10 次采样取平均以降低噪声。</p>
+    </div>
+
+    <!-- Display -->
+    <div class="card">
+        <h3>显示模块 <span class="badge badge-orange">display</span></h3>
+        <table>
+            <tr><th>组件</th><th>规格</th></tr>
+            <tr><td>屏幕</td><td>ST7789V, 240&times;320, SPI, 横屏模式</td></tr>
+            <tr><td>SPI 主机</td><td>SPI2_HOST, 初始化 10MHz &rarr; 运行 40MHz</td></tr>
+            <tr><td>UI 框架</td><td>LVGL v8.4, 暗色主题</td></tr>
+            <tr><td>输入设备</td><td>2 个旋转编码器 (lv_indev_type_encoder)</td></tr>
+        </table>
+        <br>
+        <p><strong>UI 布局：</strong>顶部状态栏 &rarr; 色温弧形控件（2700K~6500K，暖色/冷色自动变色） &rarr; 亮度弧形控件（0~100%） &rarr; 底部温度进度条（绿&rarr;黄&rarr;红渐变）+ 环境温压显示</p>
+    </div>
+
+    <!-- Network -->
+    <div class="card">
+        <h3>网络模块 <span class="badge badge-green">network</span></h3>
+        <table>
+            <tr><th>协议</th><th>功能</th><th>详情</th></tr>
+            <tr><td>WiFi</td><td>AP + STA 双模式</td><td>AP: "COB-LED" / "12345678"</td></tr>
+            <tr><td>HTTP</td><td>REST API 控制接口</td><td>GET/POST /api/status, /api/set, /api/sensors, /api/scene</td></tr>
+            <tr><td>mDNS</td><td>域名解析</td><td>http://cob-led.local</td></tr>
+            <tr><td>BLE</td><td>NimBLE GATT 服务</td><td>6个特征: CCT, 亮度, 开关, 温度, 场景, 状态</td></tr>
+            <tr><td>MQTT</td><td>远程控制 + 数据上报</td><td>Topics: cob-led/set, cob-led/state, cob-led/sensor</td></tr>
+        </table>
+    </div>
+
+    <!-- Storage -->
+    <div class="card">
+        <h3>存储模块 <span class="badge badge-blue">storage</span></h3>
+        <p>使用 NVS (Non-Volatile Storage) 持久化用户设置，命名空间 <code>"cob-led"</code>，共 10 个键值对：</p>
+        <br>
+        <table>
+            <tr><th>键名</th><th>类型</th><th>说明</th></tr>
+            <tr><td>cct</td><td>u16</td><td>色温 (2700~6500K)</td></tr>
+            <tr><td>brt</td><td>u8</td><td>亮度 (0~100%)</td></tr>
+            <tr><td>bzFreq</td><td>u16</td><td>蜂鸣器频率 (200~8000Hz)</td></tr>
+            <tr><td>bzDuty</td><td>u8</td><td>蜂鸣器占空比</td></tr>
+            <tr><td>autoBrt</td><td>i8</td><td>自动亮度开关</td></tr>
+            <tr><td>mqttEn</td><td>i8</td><td>MQTT 使能</td></tr>
+            <tr><td>mqttBr</td><td>string</td><td>MQTT Broker 地址</td></tr>
+            <tr><td>mqttPt</td><td>u16</td><td>MQTT 端口</td></tr>
+            <tr><td>mqttUsr</td><td>string</td><td>MQTT 用户名</td></tr>
+            <tr><td>mqttPwd</td><td>string</td><td>MQTT 密码</td></tr>
+        </table>
+    </div>
+</div>
+
+<!-- ==================== PROTECTION ==================== -->
+<div class="section">
+    <h2>保护机制</h2>
+    <div class="card-grid">
+        <div class="card">
+            <h3>温度保护</h3>
+            <table>
+                <tr><th>温度</th><th>动作</th></tr>
+                <tr><td>&lt; 70&deg;C</td><td><span class="badge badge-green">正常</span></td></tr>
+                <tr><td>&ge; 70&deg;C</td><td><span class="badge badge-orange">警告</span> 日志输出</td></tr>
+                <tr><td>&ge; 85&deg;C</td><td><span class="badge badge-red">关断</span> LED亮度强制归零 (NTC 灯珠温度)</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <h3>风扇温控</h3>
+            <table>
+                <tr><th>温度</th><th>风扇状态</th></tr>
+                <tr><td>&lt; 45&deg;C</td><td>关闭</td></tr>
+                <tr><td>45~65&deg;C</td><td>线性调速 (32~255)</td></tr>
+                <tr><td>&ge; 65&deg;C</td><td>全速 (255)</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <h3>自动亮度</h3>
+            <table>
+                <tr><th>环境光</th><th>亮度</th></tr>
+                <tr><td>&le; 500 (暗)</td><td>100%</td></tr>
+                <tr><td>500~2500</td><td>线性映射 100%&rarr;10%</td></tr>
+                <tr><td>&ge; 2500 (亮)</td><td>10%</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <h3>场景预设</h3>
+            <table>
+                <tr><th>场景</th><th>色温</th><th>亮度</th></tr>
+                <tr><td>1 暖光</td><td>2700K</td><td>30%</td></tr>
+                <tr><td>2 中性暖</td><td>3500K</td><td>60%</td></tr>
+                <tr><td>3 中性白</td><td>4600K</td><td>80%</td></tr>
+                <tr><td>4 冷光</td><td>6500K</td><td>100%</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== PARTITION ==================== -->
+<div class="section">
+    <h2>Flash 分区表</h2>
+    <div class="card">
+        <p>ESP32-S3 N16R8 (16MB Flash + 8MB OCT PSRAM)</p>
+        <br>
+        <table>
+            <tr><th>分区</th><th>类型</th><th>偏移</th><th>大小</th><th>说明</th></tr>
+            <tr><td>nvs</td><td>data</td><td>0x9000</td><td>24 KB</td><td>用户设置存储</td></tr>
+            <tr><td>otadata</td><td>data</td><td>0xF000</td><td>8 KB</td><td>OTA 分区选择</td></tr>
+            <tr><td>phy_init</td><td>data</td><td>0x11000</td><td>4 KB</td><td>PHY 校准数据</td></tr>
+            <tr><td>ota_0</td><td>app</td><td>0x20000</td><td>1.875 MB</td><td>固件 A 分区</td></tr>
+            <tr><td>ota_1</td><td>app</td><td>0x200000</td><td>1.875 MB</td><td>固件 B 分区 (OTA)</td></tr>
+            <tr><td>spiffs</td><td>data</td><td>0x3E0000</td><td>12.125 MB</td><td>文件系统 (Web资源等)</td></tr>
+        </table>
+    </div>
+</div>
+
+<!-- ==================== MEMORY ==================== -->
+<div class="section">
+    <h2>内存使用</h2>
+    <div class="card">
+        <table>
+            <tr><th>区域</th><th>已用</th><th>占比</th><th>状态</th></tr>
+            <tr>
+                <td>Flash Code</td>
+                <td>1.04 MB / 8 MB</td>
+                <td>12.99%</td>
+                <td><div class="mem-bar"><div class="mem-fill" style="width:13%;background:var(--accent)"></div></div></td>
+            </tr>
+            <tr>
+                <td>Flash Data</td>
+                <td>224 KB / 32 MB</td>
+                <td>0.68%</td>
+                <td><div class="mem-bar"><div class="mem-fill" style="width:1%;background:var(--accent)"></div></div></td>
+            </tr>
+            <tr>
+                <td>DIRAM</td>
+                <td>161 KB / 334 KB</td>
+                <td>48.31%</td>
+                <td><div class="mem-bar"><div class="mem-fill" style="width:48%;background:var(--warm)"></div></div></td>
+            </tr>
+            <tr>
+                <td>IRAM (SRAM0)</td>
+                <td>16 KB / 16 KB</td>
+                <td>99.99%</td>
+                <td><div class="mem-bar"><div class="mem-fill" style="width:100%;background:var(--danger)"></div></div></td>
+            </tr>
+            <tr>
+                <td>RTC FAST</td>
+                <td>308 B / 8 KB</td>
+                <td>3.76%</td>
+                <td><div class="mem-bar"><div class="mem-fill" style="width:4%;background:var(--accent)"></div></div></td>
+            </tr>
+        </table>
+        <br>
+        <p><strong>固件总大小：</strong>1.4 MB（含 WiFi + BLE + LVGL + MCPWM 全部功能）</p>
+        <p><strong>IRAM 说明：</strong>SRAM0 仅 16KB 且只能通过指令总线访问，WiFi/BLE 中断处理函数会自动填满，属于正常现象。</p>
+    </div>
+</div>
+
+<!-- ==================== BUILD ==================== -->
+<div class="section">
+    <h2>编译与烧录</h2>
+    <div class="card">
+        <h3>环境要求</h3>
+        <table>
+            <tr><th>工具</th><th>版本</th></tr>
+            <tr><td>ESP-IDF</td><td>v5.4</td></tr>
+            <tr><td>目标芯片</td><td>ESP32-S3 (N16R8)</td></tr>
+            <tr><td>CMake</td><td>&ge; 3.16</td></tr>
+            <tr><td>Python</td><td>3.11 (ESP-IDF 自带)</td></tr>
+        </table>
+        <br>
+        <h3>编译命令</h3>
+<pre><code># 清理旧构建缓存
+idf.py fullclean
+
+# 编译
+idf.py build
+
+# 烧录
+idf.py flash
+
+# 查看串口日志
+idf.py monitor
+
+# 烧录 + 监控
+idf.py flash monitor</code></pre>
+    </div>
+</div>
+
+<!-- ==================== DEPENDENCIES ==================== -->
+<div class="section">
+    <h2>外部依赖</h2>
+    <div class="card">
+        <table>
+            <tr><th>组件</th><th>版本</th><th>来源</th><th>说明</th></tr>
+            <tr><td>lvgl/lvgl</td><td>&ge;8.3.0, &lt;9.0.0</td><td>组件注册表</td><td>UI 框架 (锁定 v8.x)</td></tr>
+            <tr><td>espressif/mdns</td><td>*</td><td>组件注册表</td><td>mDNS 域名解析</td></tr>
+            <tr><td>mqtt</td><td>ESP-IDF 内置</td><td>ESP-IDF</td><td>MQTT 客户端</td></tr>
+            <tr><td>bt (NimBLE)</td><td>ESP-IDF 内置</td><td>ESP-IDF</td><td>BLE 协议栈</td></tr>
+            <tr><td>json</td><td>ESP-IDF 内置</td><td>ESP-IDF</td><td>cJSON 解析</td></tr>
+        </table>
+    </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+    COB-LED Controller v1.0 &mdash; ESP32-S3 + ESP-IDF v5.4<br>
+    文档生成时间: 2026-05-22
+</div>
+
+</div>
+</body>
+</html>

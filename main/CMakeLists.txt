@@ -1,0 +1,37 @@
+idf_component_register(
+    SRCS
+        "main.cpp"
+        "storage/storage.cpp"
+        "led/led_control.cpp"
+        "sensor/sensors.cpp"
+        "sensor/bmp280.cpp"
+        "display/st7789v.cpp"
+        "display/lvgl_disp.cpp"
+        "display/lvgl_indev.cpp"
+        "display/lvgl_ui.cpp"
+        "network/web_ui.cpp"
+        "network/ble_ui.cpp"
+        "network/mqtt_client.cpp"
+    INCLUDE_DIRS
+        "."
+        "hal"
+        "storage"
+        "led"
+        "sensor"
+        "display"
+        "network"
+    REQUIRES
+        esp_timer
+        esp_event
+        esp_wifi
+        esp_http_server
+        app_update
+        nvs_flash
+        bt
+        driver
+        esp_adc
+        json
+        mqtt
+        espressif__mdns
+        lvgl__lvgl
+)
