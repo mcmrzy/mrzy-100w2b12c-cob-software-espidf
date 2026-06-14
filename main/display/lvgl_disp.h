@@ -9,9 +9,9 @@ extern "C" {
 #endif
 
 /**
- * @brief LVGL display buffer size in pixels (240 * 20 lines)
+ * @brief LVGL display buffer size in pixels (240 * 10 lines, 需要约 4.8KB RAM)
  */
-#define LVGL_DISP_BUF_SIZE  (240 * 20)
+#define LVGL_DISP_BUF_SIZE  (240 * 10)
 
 /**
  * @brief Initialize LVGL display driver with ST7789V

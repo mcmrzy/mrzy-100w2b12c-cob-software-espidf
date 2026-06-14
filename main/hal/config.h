@@ -55,13 +55,14 @@ extern "C" {
 #define PIN_AD_BAT          7   /* 电池电压 */
 #define PIN_AD_LDR          5   /* 光敏电阻 */
 #define PIN_AD_RT           4   /* NTC 温度 */
-#define PIN_AD_I_BAT        1   /* 电池电流 */
-#define PIN_AD_I_IN         2   /* 输入电流 */
+#define PIN_AD_I_IN         1   /* 输入电流 */
+#define PIN_AD_I_BAT        2   /* 电池电流 */
 
 /* ======================== LED 参数 ======================== */
 
-#define EN_PWM_FREQ         20000   /* 使能 PWM 频率 (Hz) */
-#define WY_PWM_FREQ         20000   /* 暖白/冷白 PWM 频率 (Hz) */
+#define EN_PWM_FREQ         15000   /* 使能 PWM 频率 (Hz, >10k) */
+#define WY_PWM_FREQ         32000   /* 暖白/冷白 互补 PWM 频率 (Hz) */
+#define WY_DEAD_TIME_NS     200     /* W/Y 死区时间 (ns) */
 #define PWM_RESOLUTION      10      /* PWM 分辨率 (bit) */
 #define PWM_MAX             1023    /* PWM 最大值 (2^10 - 1) */
 
@@ -72,7 +73,7 @@ extern "C" {
 
 #define BRT_MIN             0       /* 最小亮度 (%) */
 #define BRT_MAX             100     /* 最大亮度 (%) */
-#define BRT_DEFAULT         0       /* 默认亮度 (%) */
+#define BRT_DEFAULT         0       /* 默认亮度 (%) - 初始为0，避免启动时大电流 */
 
 /* ======================== WiFi 配置 ======================== */
 

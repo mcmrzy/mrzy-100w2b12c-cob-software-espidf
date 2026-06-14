@@ -23,9 +23,11 @@ bool ST7789V::begin()
     esp_err_t ret;
 
     /* --- GPIO Init --- */
+    /* 注意：CS 由 SPI 硬件控制，不需要手动配置 */
     gpio_config_t io_conf = {};
     io_conf.pin_bit_mask = (1ULL << ST7789V_PIN_DC) | (1ULL << ST7789V_PIN_RES);
     /* ST7789V_PIN_BLK is -1 (disabled), skip it */
+    /* ST7789V_PIN_CS 由 SPI 硬件控制 */
     io_conf.mode = GPIO_MODE_OUTPUT;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
@@ -54,7 +56,7 @@ bool ST7789V::begin()
     /* --- Attach Device to SPI Bus --- */
     spi_device_interface_config_t dev_cfg = {};
     dev_cfg.clock_speed_hz = ST7789V_SPI_INIT_HZ;
-    dev_cfg.mode = 0;               // SPI mode 0
+    dev_cfg.mode = 3;               // SPI mode 3 (CPOL=1, CPHA=1) - 尝试不同的模式
     dev_cfg.spics_io_num = ST7789V_PIN_CS;
     dev_cfg.queue_size = ST7789V_SPI_QUEUE;
     dev_cfg.pre_cb = nullptr;       // No pre-transfer callback (DC handled manually)
@@ -77,18 +79,96 @@ bool ST7789V::begin()
     writeCommand(ST7789V_SLPOUT);
     vTaskDelay(pdMS_TO_TICKS(120));
 
-    /* --- Color Mode: 16-bit RGB565 (0x05) --- */
+    /* --- Color Mode: 16-bit RGB565 (0x55) --- */
     writeCommand(ST7789V_COLMOD);
-    writeData(0x05);
+    writeData(0x55);  // 16-bit color mode (RGB565)
     vTaskDelay(pdMS_TO_TICKS(10));
 
-    /* --- Memory Data Access Control: 0x00 = Portrait, RGB --- */
+    /* --- Memory Data Access Control --- */
     writeCommand(ST7789V_MADCTL);
     writeData(0x00);
 
-    /* --- Normal Display Mode On --- */
-    writeCommand(ST7789V_NORON);
-    vTaskDelay(pdMS_TO_TICKS(10));
+    /* --- Porch Setting --- */
+    writeCommand(0xB2);  // Porch Control
+    writeData(0x0C);
+    writeData(0x0C);
+    writeData(0x00);
+    writeData(0x33);
+    writeData(0x33);
+
+    /* --- Gate Control --- */
+    writeCommand(0xB7);
+    writeData(0x75);  // VGH=15V, VGL=-10.43
+
+    /* --- VCOM Setting --- */
+    writeCommand(0xBB);
+    writeData(0x21);  // Vcom
+
+    /* --- LCM Control --- */
+    writeCommand(0xC0);
+    writeData(0x2C);
+
+    /* --- VDV and VRH Command Enable --- */
+    writeCommand(0xC2);
+    writeData(0x01);
+
+    /* --- VRH Set --- */
+    writeCommand(0xC3);
+    writeData(0x0B);  // GVDD=4.55v
+
+    /* --- VDV Set --- */
+    writeCommand(0xC4);
+    writeData(0x20);  // VDV, 0x20:0v
+
+    /* --- Frame Rate Control --- */
+    writeCommand(0xC6);
+    writeData(0x0F);  // 60Hz
+
+    /* --- Power Control --- */
+    writeCommand(0xD0);
+    writeData(0xA4);
+    writeData(0xA1);
+
+    /* --- D6 Setting --- */
+    writeCommand(0xD6);
+    writeData(0xA1);
+
+    /* --- Positive Voltage Gamma Control --- */
+    writeCommand(0xE0);
+    writeData(0xD0);
+    writeData(0x06);
+    writeData(0x0B);
+    writeData(0x09);
+    writeData(0x08);
+    writeData(0x30);
+    writeData(0x30);
+    writeData(0x5B);
+    writeData(0x4B);
+    writeData(0x18);
+    writeData(0x14);
+    writeData(0x14);
+    writeData(0x2C);
+    writeData(0x32);
+
+    /* --- Negative Voltage Gamma Control --- */
+    writeCommand(0xE1);
+    writeData(0xD0);
+    writeData(0x05);
+    writeData(0x0A);
+    writeData(0x0A);
+    writeData(0x07);
+    writeData(0x28);
+    writeData(0x32);
+    writeData(0x2C);
+    writeData(0x49);
+    writeData(0x18);
+    writeData(0x13);
+    writeData(0x13);
+    writeData(0x2C);
+    writeData(0x33);
+
+    /* --- Display Inversion On --- */
+    writeCommand(0x21);
 
     /* --- Display On --- */
     writeCommand(ST7789V_DISPON);
@@ -159,6 +239,7 @@ void ST7789V::drawPixel(int16_t x, int16_t y, uint16_t color)
     if (x < 0 || x >= _width || y < 0 || y >= _height) return;
 
     setAddrWindow(x, y, x, y);
+    /* 16-bit RGB565 模式 */
     writeData16(color);
 }
 
@@ -175,7 +256,7 @@ void ST7789V::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colo
     fillRect(x + w - 1, y, 1, h, color);
 }
 
-/* ========== fillRect() (DMA optimized with line buffer) ========== */
+/* ========== fillRect() (16-bit RGB565 mode) ========== */
 void ST7789V::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
     if (x >= _width || y >= _height || w <= 0 || h <= 0) return;
@@ -188,7 +269,7 @@ void ST7789V::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colo
 
     setAddrWindow(x, y, x + w - 1, y + h - 1);
 
-    // Allocate a line buffer in DMA-capable memory
+    // Allocate a line buffer in DMA-capable memory (16-bit per pixel)
     uint16_t *line_buf = (uint16_t *)heap_caps_malloc(w * sizeof(uint16_t), MALLOC_CAP_DMA);
     if (!line_buf) {
         ESP_LOGE(TAG, "Failed to allocate line buffer for fillRect");
@@ -201,11 +282,11 @@ void ST7789V::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t colo
     }
 
     // Push the same line buffer for each row
+    gpio_set_level((gpio_num_t)ST7789V_PIN_DC, 1);  // DC high = data
+
     spi_transaction_t t = {};
-    t.length = w * 16;  // bits
+    t.length = w * 16;  // 16 bits per pixel
     t.tx_buffer = line_buf;
-    t.tx_data[0] = 0;   // unused when tx_buffer is set
-    t.user = nullptr;
 
     for (int16_t row = 0; row < h; row++) {
         spi_device_transmit(_spi_dev, &t);
@@ -236,8 +317,10 @@ void ST7789V::pushColors(uint16_t *colors, uint32_t len)
 {
     if (!colors || len == 0) return;
 
+    gpio_set_level((gpio_num_t)ST7789V_PIN_DC, 1);  // DC high = data
+
     spi_transaction_t t = {};
-    t.length = len * 16;  // bits (16 bits per pixel)
+    t.length = len * 16;  // 16 bits per pixel
     t.tx_buffer = colors;
     spi_device_transmit(_spi_dev, &t);
 }
@@ -293,8 +376,9 @@ void ST7789V::writeData16(uint16_t data)
 
     spi_transaction_t t = {};
     t.length = 16;
-    t.tx_data[0] = data & 0xFF;
-    t.tx_data[1] = (data >> 8) & 0xFF;
+    // ST7789V 期望高字节在前 (MSB first)
+    t.tx_data[0] = (data >> 8) & 0xFF;  // 高字节
+    t.tx_data[1] = data & 0xFF;         // 低字节
     t.flags = SPI_TRANS_USE_TXDATA;
     spi_device_transmit(_spi_dev, &t);
 }

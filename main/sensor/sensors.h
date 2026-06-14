@@ -1,34 +1,29 @@
-#pragma once
+/* ================================================================
+ *  sensors.h - 传感器读取接口
+ * ================================================================ */
+
+#ifndef SENSORS_H
+#define SENSORS_H
+
+#include <stdint.h>
+#include "esp_err.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdint.h>
+/* 初始化传感器 */
+esp_err_t sensors_init(void);
 
-typedef struct {
-    float    bus_voltage;
-    float    bat_voltage;
-    float    temperature;       /* NTC 读取的灯珠温度 */
-    uint16_t ldr_raw;
-    uint16_t ldr_lux;
-    float    current_bat;
-    float    current_in;
-    float    power_bat;
-    float    power_in;
-    /* BMP280 环境数据 */
-    float    env_temperature;   /* 环境温度 (°C) */
-    float    pressure;          /* 气压 (hPa) */
-    float    altitude;          /* 海拔 (m) */
-} SensorData;
+/* 读取电源数据 (电压、电流、功率) */
+esp_err_t sensors_read_power(float *vbus, float *ibus, float *pbus, 
+                              float *vbat, float *ibat, float *pbat);
 
-extern SensorData g_sensors;
-extern bool       g_auto_brightness;
-
-void  sensors_init(void);
-void  sensors_read(void);
-float ntc_to_temp(uint16_t adc_val);
+/* 读取环境数据 (温度、气压) */
+esp_err_t sensors_read_env(float *temp_led, float *temp_env, float *pressure);
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* SENSORS_H */

@@ -2,12 +2,15 @@
 #include "config.h"
 #include "driver/i2c_master.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <string.h>
+#include <math.h>
 
 static const char *TAG = "bmp280";
 
 /* 全局数据实例 */
-bmp280_data_t g_bmp280 = {0};
+bmp280_data_t g_bmp280 = {};
 
 /* I2C 句柄和校准数据 */
 static i2c_master_dev_handle_t i2c_dev = NULL;
